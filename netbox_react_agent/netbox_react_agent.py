@@ -55,7 +55,12 @@ class NetBoxController:
             verify=False
         )
         response.raise_for_status()
-        return response.json()
+        if response.content:
+            try:
+                return response.json()
+            except ValueError:
+                pass
+        return {"status": "success", "message": "Resource deleted successfully."}
 
 
 # Function to load supported URLs with their names from a JSON file
