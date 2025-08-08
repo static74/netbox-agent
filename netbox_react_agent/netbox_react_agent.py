@@ -55,6 +55,8 @@ class NetBoxController:
             verify=False
         )
         response.raise_for_status()
+        if response.status_code == 204 or not response.content:
+            return {"status": "success"}
         return response.json()
 
 
