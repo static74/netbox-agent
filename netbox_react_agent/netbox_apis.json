@@ -117,7 +117,7 @@
     },
     {
         "URL": "/api/ipam/ip-ranges/",
-        "Name": "Ip Ranges"
+        "Name": "IP Ranges"
     },
     {
         "URL": "/api/dcim/locations/",
