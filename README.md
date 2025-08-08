@@ -9,7 +9,7 @@ This project simplifies network management by combining AI-driven agents with th
 
 ### Main Branch
 
-Powered by ChatGPT (gpt-4o)
+Powered by ChatGPT (gpt-5-mini)
 
 Requires OpenAI API Key
 
