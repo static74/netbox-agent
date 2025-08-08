@@ -219,7 +219,13 @@ def initialize_agent():
     global llm, agent_executor
     if not llm:
         # Initialize the LLM with the API key from session state
-        llm = ChatOpenAI(model_name="gpt-4o", openai_api_key=st.session_state['OPENAI_API_KEY'])
+        # `gpt-5-mini` currently only supports the default temperature of 1.
+        # Explicitly set the temperature to avoid "unsupported value" errors.
+        llm = ChatOpenAI(
+            model_name="gpt-5-mini",
+            temperature=1,
+            openai_api_key=st.session_state['OPENAI_API_KEY']
+        )
 
         # Define tools
         tools = [discover_apis, check_supported_url_tool, get_netbox_data_tool, create_netbox_data_tool, delete_netbox_data_tool]
