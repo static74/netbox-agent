@@ -1,9 +1,7 @@
-version: '3.6'
-
 services:
-  netbox_react_agent:
-    image: johncapobianco/netbox_react_agent:netbox_react_agent
-    container_name: netbox_react_agent
+  netbox-agent:
+    image: static74/netbox-agent:latest
+    container_name: netbox-agent
     restart: always
     build: 
       context: ./
