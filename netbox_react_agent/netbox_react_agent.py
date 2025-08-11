@@ -4,7 +4,7 @@ import logging
 import requests
 import difflib
 import streamlit as st
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 from langchain_core.tools import tool, render_text_description
@@ -198,11 +198,27 @@ def process_agent_response(response):
 
 def configure_page():
     st.title("NetBox Configuration")
-    base_url = st.text_input("NetBox URL", placeholder="https://demo.netbox.dev")
-    api_token = st.text_input("NetBox API Token", type="password", placeholder="Your API Token")
-    openai_key = st.text_input("OpenAI API Key", type="password", placeholder="Your OpenAI API Key")
+    with st.form("config_form"):
+        base_url = st.text_input(
+            "NetBox URL",
+            placeholder="https://demo.netbox.dev",
+            key="config_netbox_url",
+        )
+        api_token = st.text_input(
+            "NetBox API Token",
+            type="password",
+            placeholder="Your API Token",
+            key="config_api_token",
+        )
+        openai_key = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            placeholder="Your OpenAI API Key",
+            key="config_openai_key",
+        )
+        submitted = st.form_submit_button("Save and Continue")
 
-    if st.button("Save and Continue"):
+    if submitted:
         if not base_url or not api_token or not openai_key:
             st.error("All fields are required.")
         else:
@@ -214,6 +230,7 @@ def configure_page():
             os.environ['OPENAI_API_KEY'] = openai_key
             st.success("Configuration saved! Redirecting to chat...")
             st.session_state['page'] = "chat"
+            st.rerun()
 
 def initialize_agent():
     global llm, agent_executor
@@ -274,7 +291,12 @@ def initialize_agent():
         )
 
         # Create the ReAct agent
-        agent = create_react_agent(llm=llm, tools=tools, prompt=prompt_template)
+        agent = create_react_agent(
+            llm=llm,
+            tools=tools,
+            prompt=prompt_template,
+            stop_sequence=False,
+        )
 
         # Create the AgentExecutor
         agent_executor = AgentExecutor(
@@ -287,7 +309,6 @@ def initialize_agent():
 
 def chat_page():
     st.title("Chat with NetBox AI Agent")
-    user_input = st.text_input("Ask NetBox a question:", key="user_input")
 
     # Ensure the agent is initialized
     if "OPENAI_API_KEY" not in st.session_state:
@@ -304,39 +325,41 @@ def chat_page():
     if "conversation" not in st.session_state:
         st.session_state.conversation = []
 
-    # Button to submit the question
-    if st.button("Send"):
-        if user_input:
-            # Add the user input to the conversation history
-            st.session_state.conversation.append({"role": "user", "content": user_input})
+    with st.form("chat_form", clear_on_submit=True):
+        user_input = st.text_input("Ask NetBox a question:", key="chat_user_input")
+        submitted = st.form_submit_button("Send")
 
-            # Invoke the agent with the user input and current chat history
-            try:
-                response = agent_executor.invoke({
-                    "input": user_input,
-                    "chat_history": st.session_state.chat_history,
-                    "agent_scratchpad": ""  # Initialize agent scratchpad as an empty string
-                })
+    if submitted and user_input:
+        # Add the user input to the conversation history
+        st.session_state.conversation.append({"role": "user", "content": user_input})
 
-                # Process the agent's response
-                final_response = process_agent_response(response)
+        # Invoke the agent with the user input and current chat history
+        try:
+            response = agent_executor.invoke({
+                "input": user_input,
+                "chat_history": st.session_state.chat_history,
+                "agent_scratchpad": "",  # Initialize agent scratchpad as an empty string
+            })
 
-                # Extract the final answer
-                final_answer = final_response.get('output', 'No answer provided.')
+            # Process the agent's response
+            final_response = process_agent_response(response)
 
-                # Display the question and answer
-                st.write(f"**Question:** {user_input}")
-                st.write(f"**Answer:** {final_answer}")
+            # Extract the final answer
+            final_answer = final_response.get('output', 'No answer provided.')
 
-                # Add the response to the conversation history
-                st.session_state.conversation.append({"role": "assistant", "content": final_answer})
+            # Display the question and answer
+            st.write(f"**Question:** {user_input}")
+            st.write(f"**Answer:** {final_answer}")
 
-                # Update chat history with the new conversation
-                st.session_state.chat_history = "\n".join(
-                    [f"{entry['role'].capitalize()}: {entry['content']}" for entry in st.session_state.conversation]
-                )
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
+            # Add the response to the conversation history
+            st.session_state.conversation.append({"role": "assistant", "content": final_answer})
+
+            # Update chat history with the new conversation
+            st.session_state.chat_history = "\n".join(
+                [f"{entry['role'].capitalize()}: {entry['content']}" for entry in st.session_state.conversation]
+            )
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
 
     # Display conversation history
     if st.session_state.conversation:
